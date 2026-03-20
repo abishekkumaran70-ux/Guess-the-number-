@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Guess the Number</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+
+  <!-- ===================== CSS ===================== -->
+  <style>
+    /* ---------- CSS Variables (theme colors) ---------- */
+    :root {
+      --bg:        #0d0d0d;
+      --card:      #161616;
+      --border:    #2a2a2a;
+      --accent:    #c8f135;       /* electric lime */
+      --accent2:   #f1c835;       /* gold for warm hints */
+      --danger:    #f13535;
+      --text:      #f0f0f0;
+      --muted:     #666;
+      --radius:    12px;
+    }
+
+    /* ---------- Reset & Base ---------- */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      /* subtle dot-grid background */
+      background-image: radial-gradient(circle, #2a2a2a 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+
+    /* ---------- Card ---------- */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 48px 40px 40px;
+      width: 100%;
+      max-width: 460px;
+      box-shadow: 0 0 60px rgba(200, 241, 53, 0.06);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* decorative top stripe */
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent));
+    }
+
+    /* ---------- Header ---------- */
+    .badge {
+      display: inline-block;
+      background: rgba(200,241,53,0.1);
+      color: var(--accent);
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(200,241,53,0.25);
+      margin-bottom: 14px;
+    }
+
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(28px, 6vw, 38px);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -1px;
+      margin-bottom: 6px;
+    }
+
+    h1 span { color: var(--accent); }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 32px;
+    }
+
+    /* ---------- Attempts counter ---------- */
+    .stats {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .stat-box {
+      flex: 1;
+      background: #1c1c1c;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--accent);
+      font-family: 'Syne', sans-serif;
+    }
+
+    /* ---------- Input ---------- */
+    .input-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    input[type="number"] {
+      flex: 1;
+      background: #1c1c1c;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      font-size: 18px;
+      padding: 14px 18px;
+      outline: none;
+      transition: border-color 0.2s;
+      /* hide spinners */
+      -moz-appearance: textfield;
+    }
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+    input[type="number"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(200,241,53,0.12);
+    }
+
+    /* ---------- Buttons ---------- */
+    .btn {
+      cursor: pointer;
+      font-family: 'Space Mono', monospace;
+      font-weight: 700;
+      font-size: 14px;
+      border: none;
+      border-radius: var(--radius);
+      padding: 14px 22px;
+      transition: transform 0.15s, box-shadow 0.15s, background 0.2s;
+    }
+
+    .btn:active { transform: scale(0.97); }
+
+    /* primary (Guess) */
+    .btn-primary {
+      background: var(--accent);
+      color: #0d0d0d;
+    }
+    .btn-primary:hover {
+      background: #d4f54a;
+      box-shadow: 0 0 20px rgba(200,241,53,0.35);
+    }
+    .btn-primary:disabled {
+      background: #333;
+      color: var(--muted);
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    /* secondary (Reset) */
+    .btn-secondary {
+      width: 100%;
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      margin-top: 10px;
+    }
+    .btn-secondary:hover {
+      border-color: #555;
+      color: var(--text);
+    }
+
+    /* ---------- Feedback message ---------- */
+    .message {
+      min-height: 52px;
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-align: center;
+      padding: 12px 16px;
+      transition: all 0.3s ease;
+      border: 1px solid transparent;
+    }
+
+    .message.hidden   { background: transparent; }
+    .message.high     { background: rgba(241,53,53,0.1);   color: var(--danger); border-color: rgba(241,53,53,0.25); }
+    .message.low      { background: rgba(241,200,53,0.1);  color: var(--accent2); border-color: rgba(241,200,53,0.25); }
+    .message.correct  {
+      background: rgba(200,241,53,0.12);
+      color: var(--accent);
+      border-color: rgba(200,241,53,0.35);
+      font-size: 16px;
+    }
+
+    /* ---------- Previous guesses ---------- */
+    .history-label {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin: 20px 0 8px;
+    }
+
+    .history-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      min-height: 28px;
+    }
+
+    .chip {
+      font-size: 12px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: #1c1c1c;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      animation: popIn 0.2s ease;
+    }
+
+    @keyframes popIn {
+      from { transform: scale(0.6); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+
+    /* shake animation on wrong guess */
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%      { transform: translateX(-8px); }
+      40%      { transform: translateX(8px); }
+      60%      { transform: translateX(-5px); }
+      80%      { transform: translateX(5px); }
+    }
+    .shake { animation: shake 0.4s ease; }
+  </style>
+</head>
+<body>
+
+  <!-- ===================== HTML ===================== -->
+  <div class="card" id="gameCard">
+    <div class="badge">1 – 100</div>
+    <h1>Guess the <span>Number</span></h1>
+    <p class="subtitle">I'm thinking of a number. Can you find it?</p>
+
+    <!-- Attempt counter -->
+    <div class="stats">
+      <div class="stat-box">
+        <div class="stat-label">Attempts</div>
+        <div class="stat-value" id="attemptCount">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Best Score</div>
+        <div class="stat-value" id="bestScore">—</div>
+      </div>
+    </div>
+
+    <!-- Input + Guess button -->
+    <div class="input-row">
+      <input
+        type="number"
+        id="guessInput"
+        placeholder="Your guess…"
+        min="1"
+        max="100"
+      />
+      <button class="btn btn-primary" id="guessBtn" onclick="checkGuess()">GO</button>
+    </div>
+
+    <!-- Feedback message -->
+    <div class="message hidden" id="message"></div>
+
+    <!-- Previous guesses -->
+    <div class="history-label">Previous Guesses</div>
+    <div class="history-chips" id="historyChips"></div>
+
+    <!-- Reset -->
+    <button class="btn btn-secondary" onclick="resetGame()">↺ New Game</button>
+  </div>
+
+
+  <!-- ===================== JavaScript ===================== -->
+  <script>
+    // ── Step 1: Generate a secret random number between 1 and 100 ──
+    var secretNumber;       // the number the player must guess
+    var numberOfAttempts;   // how many guesses the player has made
+    var bestScore;          // fewest attempts ever used to win
+    var previousGuesses;    // array to track all past guesses
+    var gameOver;           // flag – stops guessing once won
+
+    // Kick off the game when the page loads
+    resetGame();
+
+    // ── Step 2: Start (or restart) the game ──
+    function resetGame() {
+      // Pick a whole number from 1–100 using Math.random()
+      // Math.random() gives 0.0–0.9999, multiply by 100 → 0–99.9
+      // Math.floor() rounds it down → 0–99, then +1 → 1–100
+      secretNumber    = Math.floor(Math.random() * 100) + 1;
+      numberOfAttempts = 0;
+      previousGuesses  = [];
+      gameOver         = false;
+
+      // Update the best score display (keep from old session if it exists)
+      bestScore = bestScore || null;
+
+      // Reset the UI back to its starting state
+      document.getElementById('attemptCount').textContent = '0';
+      document.getElementById('bestScore').textContent    = bestScore ? bestScore : '—';
+      document.getElementById('guessInput').value         = '';
+      document.getElementById('guessInput').disabled      = false;
+      document.getElementById('guessBtn').disabled        = false;
+      document.getElementById('historyChips').innerHTML   = '';
+      setMessage('', 'hidden');
+      document.getElementById('guessInput').focus();
+    }
+
+    // ── Step 3: Check the player's guess ──
+    function checkGuess() {
+      if (gameOver) return; // do nothing if game already won
+
+      // Read the number the player typed in
+      var userGuess = parseInt(document.getElementById('guessInput').value);
+      var card      = document.getElementById('gameCard');
+
+      // Validate: must be a number between 1 and 100
+      if (isNaN(userGuess) || userGuess < 1 || userGuess > 100) {
+        setMessage('⚠ Enter a number between 1 and 100.', 'high');
+        triggerShake(card);
+        return;
+      }
+
+      // Increase the attempt counter by 1
+      numberOfAttempts++;
+      document.getElementById('attemptCount').textContent = numberOfAttempts;
+
+      // Add this guess to the history list
+      addGuessChip(userGuess);
+
+      // ── Step 4: Compare the guess to the secret number ──
+      if (userGuess > secretNumber) {
+        // Guess is too big
+        setMessage('📉 Too high! Try lower.', 'high');
+        triggerShake(card);
+
+      } else if (userGuess < secretNumber) {
+        // Guess is too small
+        setMessage('📈 Too low! Try higher.', 'low');
+        triggerShake(card);
+
+      } else {
+        // ── Correct! ──
+        // Update best score if this is the fewest attempts ever
+        if (!bestScore || numberOfAttempts < bestScore) {
+          bestScore = numberOfAttempts;
+          document.getElementById('bestScore').textContent = bestScore;
+        }
+
+        setMessage(
+          '🎉 Correct! The number was ' + secretNumber +
+          '. You got it in ' + numberOfAttempts + ' attempt' +
+          (numberOfAttempts === 1 ? '' : 's') + '!',
+          'correct'
+        );
+
+        // Disable input so the player can't keep guessing
+        document.getElementById('guessInput').disabled = true;
+        document.getElementById('guessBtn').disabled   = true;
+        gameOver = true;
+      }
+
+      // Clear the text box so the player can type their next guess easily
+      document.getElementById('guessInput').value = '';
+      document.getElementById('guessInput').focus();
+    }
+
+    // ── Helper: show a feedback message ──
+    function setMessage(text, type) {
+      var msgBox = document.getElementById('message');
+      msgBox.textContent  = text;
+      msgBox.className    = 'message ' + type; // drives the CSS colour
+    }
+
+    // ── Helper: add a small chip showing a past guess ──
+    function addGuessChip(guess) {
+      var chip = document.createElement('span');
+      chip.className   = 'chip';
+      chip.textContent = guess;
+      document.getElementById('historyChips').appendChild(chip);
+    }
+
+    // ── Helper: shake the card for wrong input ──
+    function triggerShake(element) {
+      element.classList.remove('shake');
+      // Force a reflow so the animation restarts even if already running
+      void element.offsetWidth;
+      element.classList.add('shake');
+    }
+
+    // ── Allow pressing Enter instead of clicking GO ──
+    document.getElementById('guessInput').addEventListener('keydown', function(event) {
+      if (event.key === 'Enter') checkGuess();
+    });
+  </script>
+
+</body>
+</html>
